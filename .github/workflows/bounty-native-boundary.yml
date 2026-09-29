@@ -46,3 +46,6 @@ jobs:
 
       - name: Run undercollateralized resolver reward test
         run: yarn hardhat test test/BountyResolverUndercollateralizedReward.js
+
+      - name: Run resolver reward economic calibration
+        run: yarn hardhat test test/BountyResolverRewardEconomicCalibration.js
