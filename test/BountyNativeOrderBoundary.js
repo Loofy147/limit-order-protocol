@@ -6,7 +6,6 @@ const {
     ABIOrder,
     buildOrder,
     buildMakerTraits,
-    signOrder,
 } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
 
