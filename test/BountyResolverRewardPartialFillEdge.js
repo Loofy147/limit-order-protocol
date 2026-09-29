@@ -12,7 +12,7 @@ const { deploySwapTokens } = require('./helpers/fixtures');
 
 describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
     it('captures a naturally created residual below the reward cap after partial fill', async function () {
-        const [, maker, taker, resolver] = await ethers.getSigners();
+        const [taker, maker, resolver] = await ethers.getSigners();
         const { dai, weth, swap } = await deploySwapTokens();
 
         const TokenMock = await ethers.getContractFactory('TokenMock');
@@ -20,7 +20,11 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         await accessToken.waitForDeployment();
         await accessToken.mint(resolver.address, 1);
 
+        // Mirror the upstream ETH-maker fixture: both maker and taker are funded,
+        // and both accounts have the LOP allowance established.
+        await dai.mint(maker.address, ether('10'));
         await dai.mint(taker.address, ether('10'));
+        await dai.connect(maker).approve(await swap.getAddress(), ether('10'));
         await dai.connect(taker).approve(await swap.getAddress(), ether('10'));
 
         const NativeOrderFactory = await ethers.getContractFactory('NativeOrderFactory');
