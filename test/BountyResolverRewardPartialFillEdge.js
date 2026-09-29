@@ -59,6 +59,7 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
                 takerAsset: await dai.getAddress(),
                 makingAmount: initialMakingAmount,
                 takingAmount: initialTakingAmount,
+                makerTraits: require('./helpers/orderUtils').buildMakerTraits({ expiry: expiration }),
             },
             {},
         );
