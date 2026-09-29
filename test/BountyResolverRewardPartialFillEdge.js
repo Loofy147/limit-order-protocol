@@ -92,8 +92,13 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         await network.provider.send('evm_increaseTime', [61 + 60 + 1]);
         await network.provider.send('evm_mine');
 
-        await weth.connect(resolver).deposit({ value: topUp });
-        await weth.connect(resolver).transfer(cloneAddress, topUp);
+        const resolverBefore = await ethers.provider.getBalance(resolver.address);
+
+        const depositTx = await weth.connect(resolver).deposit({ value: topUp });
+        const depositReceipt = await depositTx.wait();
+
+        const transferTx = await weth.connect(resolver).transfer(cloneAddress, topUp);
+        const transferReceipt = await transferTx.wait();
 
         // Pin the base fee on the actual cancellation block.
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
@@ -101,7 +106,6 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         ]);
 
         const makerBefore = await ethers.provider.getBalance(maker.address);
-        const resolverBefore = await ethers.provider.getBalance(resolver.address);
 
         const clone = await ethers.getContractAt('NativeOrderImpl', cloneAddress);
         const tx = await clone.connect(resolver).cancelExpiredOrderByResolver(
@@ -109,7 +113,7 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
             rewardCap,
         );
         const receipt = await tx.wait();
-        const gasCost = receipt.gasUsed * receipt.gasPrice;
+        const cancelGasCost = receipt.gasUsed * receipt.gasPrice;
         const cancellationBlock = await ethers.provider.getBlock(receipt.blockNumber);
 
         expect(cancellationBlock.baseFeePerGas).to.equal(baseFee);
@@ -118,24 +122,41 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         const makerAfter = await ethers.provider.getBalance(maker.address);
         const resolverAfter = await ethers.provider.getBalance(resolver.address);
         const makerNativeDelta = makerAfter - makerBefore;
-        const resolverNetAfterTopUpAndGas = resolverAfter - resolverBefore;
+        const resolverNetTotal = resolverAfter - resolverBefore;
+
+        const depositGasCost = depositReceipt.gasUsed * depositReceipt.gasPrice;
+        const transferGasCost = transferReceipt.gasUsed * transferReceipt.gasPrice;
+        const cancelEvent = getEventArgs(
+            receipt,
+            clone.interface,
+            'NativeOrderCancelledByResolver',
+        );
+        const resolverReward = cancelEvent[2];
 
         expect(makerNativeDelta).to.equal(0n);
+        expect(resolverReward).to.equal(rewardCap);
+
+        // Complete resolver accounting from the initial balance snapshot:
+        // reward - top-up - deposit gas - transfer gas - cancellation gas.
         expect(
-            resolverNetAfterTopUpAndGas + gasCost,
-        ).to.equal(residualCollateral);
-        expect(resolverNetAfterTopUpAndGas).to.be.greaterThan(0n);
+            resolverNetTotal
+                + topUp
+                + depositGasCost
+                + transferGasCost
+                + cancelGasCost,
+        ).to.equal(resolverReward);
 
         console.log('PARTIAL_FILL_ECONOMIC_EDGE', JSON.stringify({
             initialMakingAmount: initialMakingAmount.toString(),
-            partialMakingAmount: residualCollateral.toString(),
             residualCollateral: residualCollateral.toString(),
             rewardCap: rewardCap.toString(),
             topUp: topUp.toString(),
-            gasUsed: receipt.gasUsed.toString(),
-            gasPrice: receipt.gasPrice.toString(),
-            gasCost: gasCost.toString(),
-            resolverNetAfterTopUpAndGas: resolverNetAfterTopUpAndGas.toString(),
+            depositGasCost: depositGasCost.toString(),
+            transferGasCost: transferGasCost.toString(),
+            cancelGasCost: cancelGasCost.toString(),
+            victimResidualLoss: residualCollateral.toString(),
+            resolverNetTotal: resolverNetTotal.toString(),
+            resolverReward: resolverReward.toString(),
         }));
     });
 });
