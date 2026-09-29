@@ -65,6 +65,7 @@ describe('Bounty: NativeOrder undercollateralized resolver reward', function () 
         )[2];
 
         // Simulate unsolicited WETH sent to the deterministic native-order clone.
+        // Control: this top-up is external to the maker's original collateral.
         await weth.connect(resolver).deposit({ value: topUp });
         await weth.connect(resolver).transfer(cloneAddress, topUp);
 
