@@ -9,7 +9,7 @@ const {
 } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
 
-describe('Bounty: NativeOrder ERC-1271 boundary', function () {
+describe('Bounty: NativeOrder ERC-1271 boundary', function () { // execution-control revision
     it('accepts only the factory-committed native order and exact patched hash', async function () {
         const [addr, maker] = await ethers.getSigners();
 
