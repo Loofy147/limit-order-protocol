@@ -26,6 +26,7 @@ jobs:
 
       - name: Verify target pin
         run: |
+          git fetch --no-tags --depth=1 origin "7da29889efa2e635611e1caf60f85f595ff7f05f"
           git merge-base --is-ancestor "7da29889efa2e635611e1caf60f85f595ff7f05f" HEAD
           test "$(node -p "require('./package.json').version")" = "4.3.4"
 
