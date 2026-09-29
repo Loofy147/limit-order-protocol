@@ -78,13 +78,13 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
             extension: originalOrder.extension,
         });
 
-        await swap.fillContractOrderArgs(
+        await (await swap.fillContractOrderArgs(
             fillOrder,
             signature,
             partialTakingAmount,
             takerTraits.traits,
             takerTraits.args,
-        );
+        )).wait();
 
         expect(await weth.balanceOf(cloneAddress)).to.equal(residualCollateral);
         expect(await dai.balanceOf(maker.address)).to.equal(partialTakingAmount);
@@ -92,13 +92,13 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         await network.provider.send('evm_increaseTime', [61 + 60 + 1]);
         await network.provider.send('evm_mine');
 
+        await weth.connect(resolver).deposit({ value: topUp });
+        await weth.connect(resolver).transfer(cloneAddress, topUp);
+
         // Pin the base fee on the actual cancellation block.
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
             '0x2540be400', // 10 gwei
         ]);
-
-        await weth.connect(resolver).deposit({ value: topUp });
-        await weth.connect(resolver).transfer(cloneAddress, topUp);
 
         const makerBefore = await ethers.provider.getBalance(maker.address);
         const resolverBefore = await ethers.provider.getBalance(resolver.address);
