@@ -76,7 +76,9 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         );
         const fillOrder = { ...originalOrder, maker: cloneAddress };
         const takerTraits = buildTakerTraits({
-            threshold: partialTakingAmount,
+            // threshold is the minimum accepted making amount (WETH),
+            // while fillContractOrderArgs receives the taking amount (DAI).
+            threshold: residualCollateral,
             extension: originalOrder.extension,
         });
 
