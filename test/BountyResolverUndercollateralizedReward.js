@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-const { ethers, network, time } = hre;
+const { ethers, network } = hre;
 
 const { buildOrder, buildMakerTraits } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
@@ -36,7 +36,8 @@ describe('Bounty: NativeOrder undercollateralized resolver reward', function () 
         );
         await factory.waitForDeployment();
 
-        const expiration = (await time.latest()) + 60;
+        const latestBlock = await ethers.provider.getBlock('latest');
+        const expiration = latestBlock.timestamp + 60;
         const cancellationDelay = 60;
         const makerCollateral = ether('0.0001');
         const baseFee = 10_000_000_000n; // 10 gwei
@@ -70,7 +71,10 @@ describe('Bounty: NativeOrder undercollateralized resolver reward', function () 
         await weth.connect(resolver).deposit({ value: topUp });
         await weth.connect(resolver).transfer(cloneAddress, topUp);
 
-        await time.increaseTo(expiration + cancellationDelay);
+        // Resolver cancellation with a nonzero reward requires expiration plus
+        // the configured cancellation delay. Advance and mine a local block.
+        await network.provider.send('evm_increaseTime', [60 + cancellationDelay + 1]);
+        await network.provider.send('evm_mine');
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
             '0x2540be400', // 10 gwei
         ]);
