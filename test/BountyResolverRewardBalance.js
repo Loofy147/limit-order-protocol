@@ -1,6 +1,6 @@
 const { expect } = require('chai');
 const hre = require('hardhat');
-const { ethers, network, time } = hre;
+const { ethers, network } = hre;
 
 const { buildOrder, buildMakerTraits } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
@@ -36,7 +36,8 @@ describe('Bounty: NativeOrder resolver reward uses total clone balance', functio
         );
         await factory.waitForDeployment();
 
-        const expiration = (await time.latest()) + 60;
+        const latestBlock = await ethers.provider.getBlock('latest');
+        const expiration = latestBlock.timestamp + 60;
         const cancellationDelay = 60;
         const order = buildOrder({
             maker: maker.address,
@@ -63,7 +64,10 @@ describe('Bounty: NativeOrder resolver reward uses total clone balance', functio
         await weth.connect(donor).deposit({ value: 1 });
         await weth.connect(donor).transfer(cloneAddress, 1);
 
-        await time.increaseTo(expiration + cancellationDelay);
+        // Resolver cancellation with a nonzero reward requires expiration plus
+        // the configured cancellation delay. Advance and mine a local block.
+        await network.provider.send('evm_increaseTime', [60 + cancellationDelay + 1]);
+        await network.provider.send('evm_mine');
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', ['0x2540be400']); // 10 gwei
 
         const rewardCap = 70000n * 11_000_000_000n / 10n;
