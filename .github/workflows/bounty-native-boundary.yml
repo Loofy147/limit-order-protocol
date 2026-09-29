@@ -37,3 +37,12 @@ jobs:
 
       - name: Run native-order boundary test
         run: yarn hardhat test test/BountyNativeOrderBoundary.js
+
+      - name: Run native-order isolation test
+        run: yarn hardhat test test/BountyNativeOrderIsolation.js
+
+      - name: Run resolver reward balance test
+        run: yarn hardhat test test/BountyResolverRewardBalance.js
+
+      - name: Run undercollateralized resolver reward test
+        run: yarn hardhat test test/BountyResolverUndercollateralizedReward.js
