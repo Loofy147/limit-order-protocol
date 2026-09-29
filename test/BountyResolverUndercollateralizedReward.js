@@ -37,6 +37,7 @@ describe('Bounty: NativeOrder undercollateralized resolver reward', function () 
         await factory.waitForDeployment();
 
         const expiration = (await time.latest()) + 60;
+        const cancellationDelay = 60;
         const makerCollateral = ether('0.0001');
         const baseFee = 10_000_000_000n; // 10 gwei
         const rewardCap = 70000n * baseFee * 11n / 10n;
@@ -69,7 +70,7 @@ describe('Bounty: NativeOrder undercollateralized resolver reward', function () 
         await weth.connect(resolver).deposit({ value: topUp });
         await weth.connect(resolver).transfer(cloneAddress, topUp);
 
-        await time.increaseTo(expiration);
+        await time.increaseTo(expiration + cancellationDelay);
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
             '0x2540be400', // 10 gwei
         ]);
