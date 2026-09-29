@@ -41,10 +41,6 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
         const cancellationDelay = 60;
 
         const baseFee = 10_000_000_000n;
-        await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
-            '0x2540be400', // 10 gwei
-        ]);
-
         const rewardCap = 70000n * baseFee * 11n / 10n;
         const makerCollateral = ether('0.0007');
         const topUp = rewardCap - makerCollateral;
@@ -76,6 +72,11 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
         await network.provider.send('evm_increaseTime', [60 + cancellationDelay + 1]);
         await network.provider.send('evm_mine');
 
+        // Pin the base fee on the actual cancellation block, not an earlier setup block.
+        await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
+            '0x2540be400', // 10 gwei
+        ]);
+
         const makerBefore = await ethers.provider.getBalance(maker.address);
         const resolverBefore = await ethers.provider.getBalance(resolver.address);
 
@@ -85,6 +86,9 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
 
         const receipt = await tx.wait();
         const gasCost = receipt.gasUsed * receipt.gasPrice;
+        const cancellationBlock = await ethers.provider.getBlock(receipt.blockNumber);
+        expect(cancellationBlock.baseFeePerGas).to.equal(baseFee);
+
         const makerAfter = await ethers.provider.getBalance(maker.address);
         const resolverAfter = await ethers.provider.getBalance(resolver.address);
 
