@@ -70,6 +70,11 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
 
         expect(await weth.balanceOf(cloneAddress)).to.equal(initialMakingAmount);
 
+        expect(await dai.balanceOf(taker.address)).to.be.greaterThanOrEqual(partialTakingAmount);
+        expect(
+            await dai.allowance(taker.address, await swap.getAddress()),
+        ).to.be.greaterThanOrEqual(partialTakingAmount);
+
         const signature = ethers.AbiCoder.defaultAbiCoder().encode(
             [ABIOrder],
             [originalOrder],
