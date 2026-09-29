@@ -6,6 +6,7 @@ const {
     ABIOrder,
     buildOrder,
     buildTakerTraits,
+    buildMakerTraits,
 } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
 const { deploySwapTokens } = require('./helpers/fixtures');
@@ -59,7 +60,7 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
                 takerAsset: await dai.getAddress(),
                 makingAmount: initialMakingAmount,
                 takingAmount: initialTakingAmount,
-                makerTraits: require('./helpers/orderUtils').buildMakerTraits({ expiry: expiration }),
+                makerTraits: buildMakerTraits({ expiry: expiration }),
             },
             {},
         );
