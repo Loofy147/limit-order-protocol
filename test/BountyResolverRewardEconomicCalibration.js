@@ -88,12 +88,19 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
         const makerAfter = await ethers.provider.getBalance(maker.address);
         const resolverAfter = await ethers.provider.getBalance(resolver.address);
 
-        const victimLoss = makerBefore + makerCollateral - makerAfter;
-        const resolverNet = resolverAfter - resolverBefore;
+        // The maker's entire residual clone collateral is consumed by the reward.
+        const cancellationLoss = makerCollateral - (makerAfter - makerBefore);
+        const resolverNetAfterTopUpAndGas = resolverAfter - resolverBefore;
 
         expect(makerAfter - makerBefore).to.equal(0n);
-        expect(resolverAfter - resolverBefore + gasCost).to.equal(rewardCap - topUp);
-        expect(resolverNet).to.be.greaterThan(0n);
+        expect(cancellationLoss).to.equal(makerCollateral);
+
+        // Resolver economic identity:
+        // reward - top-up - gas = C - gas.
+        expect(
+            resolverNetAfterTopUpAndGas + gasCost,
+        ).to.equal(rewardCap - topUp);
+        expect(resolverNetAfterTopUpAndGas).to.be.greaterThan(0n);
 
         console.log('ECONOMIC_CALIBRATION', JSON.stringify({
             makerCollateral: makerCollateral.toString(),
@@ -102,8 +109,8 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
             gasUsed: receipt.gasUsed.toString(),
             gasPrice: receipt.gasPrice.toString(),
             gasCost: gasCost.toString(),
-            victimLoss: victimLoss.toString(),
-            resolverNetAfterGas: resolverNet.toString(),
+            victimCancellationLoss: cancellationLoss.toString(),
+            resolverNetAfterTopUpAndGas: resolverNetAfterTopUpAndGas.toString(),
         }));
     });
 });
