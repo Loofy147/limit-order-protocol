@@ -47,15 +47,17 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
 
         expect(topUp).to.equal(ether('0.00007'));
 
-        const originalOrder = buildOrder({
-            maker: maker.address,
-            receiver: maker.address,
-            makerAsset: await weth.getAddress(),
-            takerAsset: await dai.getAddress(),
-            makingAmount: initialMakingAmount,
-            takingAmount: initialTakingAmount,
-            makerTraits: {},
-        });
+        const originalOrder = buildOrder(
+            {
+                maker: maker.address,
+                receiver: maker.address,
+                makerAsset: await weth.getAddress(),
+                takerAsset: await dai.getAddress(),
+                makingAmount: initialMakingAmount,
+                takingAmount: initialTakingAmount,
+            },
+            {},
+        );
 
         const createReceipt = await (
             await factory.connect(maker).create(originalOrder, { value: initialMakingAmount })
