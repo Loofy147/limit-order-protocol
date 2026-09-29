@@ -1,9 +1,6 @@
 name: bounty-native-boundary
 
 on:
-  push:
-    branches:
-      - bounty/research-4.3.4
   pull_request:
     branches:
       - master
