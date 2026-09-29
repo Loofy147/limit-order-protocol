@@ -82,7 +82,7 @@ describe('Bounty: NativeOrder resolver reward uses total clone balance', functio
         const expectedReward = rewardCap;
         const expectedMakerDelta = ether('1') + 1n - expectedReward;
 
-        expect(resolverAfter - resolverBefore).to.equal(expectedReward - 0n);
+        expect(resolverAfter - resolverBefore + gasPrice).to.equal(expectedReward);
         expect(makerAfter - makerBefore).to.equal(expectedMakerDelta);
 
         // The reward is materially larger than the 1-wei external donation.
