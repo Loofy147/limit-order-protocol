@@ -49,3 +49,6 @@ jobs:
 
       - name: Run resolver reward economic calibration
         run: yarn hardhat test test/BountyResolverRewardEconomicCalibration.js
+
+      - name: Run resolver reward partial-fill edge test
+        run: yarn hardhat test test/BountyResolverRewardPartialFillEdge.js
