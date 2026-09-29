@@ -6,7 +6,7 @@ on:
       - bounty/research-4.3.4
   pull_request:
     branches:
-      - bounty/research-4.3.4
+      - master
 
 jobs:
   native-boundary:
