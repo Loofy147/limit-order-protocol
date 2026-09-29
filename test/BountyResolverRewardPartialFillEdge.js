@@ -79,6 +79,8 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
             await dai.allowance(taker.address, await swap.getAddress()),
         ).to.be.greaterThanOrEqual(partialTakingAmount);
 
+        const makerDaiBeforeFill = await dai.balanceOf(maker.address);
+
         const signature = ethers.AbiCoder.defaultAbiCoder().encode(
             [ABIOrder],
             [originalOrder],
@@ -100,7 +102,7 @@ describe('Bounty: NativeOrder resolver reward partial-fill edge', function () {
         )).wait();
 
         expect(await weth.balanceOf(cloneAddress)).to.equal(residualCollateral);
-        expect(await dai.balanceOf(maker.address)).to.equal(partialTakingAmount);
+        expect(await dai.balanceOf(maker.address) - makerDaiBeforeFill).to.equal(partialTakingAmount);
 
         await network.provider.send('evm_increaseTime', [61 + 60 + 1]);
         await network.provider.send('evm_mine');
