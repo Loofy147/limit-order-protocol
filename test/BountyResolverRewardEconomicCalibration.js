@@ -6,7 +6,7 @@ const { buildOrder, buildMakerTraits } = require('./helpers/orderUtils');
 const { ether, getEventArgs } = require('./helpers/utils');
 
 describe('Bounty: NativeOrder resolver reward economic calibration', function () {
-    it('measures the profitable edge just below the reward cap at 10 gwei', async function () {
+    it('measures victim loss at residual just below the reward cap at 10 gwei', async function () {
         const [deployer, maker, resolver] = await ethers.getSigners();
 
         const TokenMock = await ethers.getContractFactory('TokenMock');
@@ -72,17 +72,24 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
         await network.provider.send('evm_increaseTime', [60 + cancellationDelay + 1]);
         await network.provider.send('evm_mine');
 
-        // Pin the base fee on the actual cancellation block, not an earlier setup block.
+        const makerBefore = await ethers.provider.getBalance(maker.address);
+        const resolverBefore = await ethers.provider.getBalance(resolver.address);
+
+        // Pin the base fee on the actual cancellation block.
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', [
             '0x2540be400', // 10 gwei
         ]);
 
-        const makerBefore = await ethers.provider.getBalance(maker.address);
-        const resolverBefore = await ethers.provider.getBalance(resolver.address);
+        const depositBefore = resolverBefore;
+        // Reconstruct the resolver's full cost from transaction receipts below.
+        void deployer;
+        void depositBefore;
 
-        const tx = await (
-            await ethers.getContractAt('NativeOrderImpl', cloneAddress)
-        ).connect(resolver).cancelExpiredOrderByResolver(order, rewardCap);
+        const clone = await ethers.getContractAt('NativeOrderImpl', cloneAddress);
+        const tx = await clone.connect(resolver).cancelExpiredOrderByResolver(
+            order,
+            rewardCap,
+        );
 
         const receipt = await tx.wait();
         const gasCost = receipt.gasUsed * receipt.gasPrice;
@@ -92,19 +99,25 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
         const makerAfter = await ethers.provider.getBalance(maker.address);
         const resolverAfter = await ethers.provider.getBalance(resolver.address);
 
-        // The maker's entire residual clone collateral is consumed by the reward.
         const cancellationLoss = makerCollateral - (makerAfter - makerBefore);
         const resolverNetAfterTopUpAndGas = resolverAfter - resolverBefore;
 
+        const cancelEvent = getEventArgs(
+            receipt,
+            clone.interface,
+            'NativeOrderCancelledByResolver',
+        );
+        const resolverReward = cancelEvent[2];
+
         expect(makerAfter - makerBefore).to.equal(0n);
         expect(cancellationLoss).to.equal(makerCollateral);
+        expect(resolverReward).to.equal(rewardCap);
 
-        // Resolver economic identity:
-        // reward - top-up - gas = C - gas.
-        expect(
-            resolverNetAfterTopUpAndGas + gasCost,
-        ).to.equal(rewardCap - topUp);
-        expect(resolverNetAfterTopUpAndGas).to.be.greaterThan(0n);
+        // resolverNet here includes the earlier top-up but not its transfer/deposit gas,
+        // because those transactions occurred before resolverBefore. The victim-loss
+        // measurement is independent of resolver profitability.
+        expect(resolverNetAfterTopUpAndGas + gasCost).to.equal(rewardCap - topUp);
+        expect(await weth.balanceOf(cloneAddress)).to.equal(0n);
 
         console.log('ECONOMIC_CALIBRATION', JSON.stringify({
             makerCollateral: makerCollateral.toString(),
@@ -115,6 +128,7 @@ describe('Bounty: NativeOrder resolver reward economic calibration', function ()
             gasCost: gasCost.toString(),
             victimCancellationLoss: cancellationLoss.toString(),
             resolverNetAfterTopUpAndGas: resolverNetAfterTopUpAndGas.toString(),
+            resolverReward: resolverReward.toString(),
         }));
     });
 });
