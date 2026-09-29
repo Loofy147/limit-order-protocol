@@ -37,6 +37,7 @@ describe('Bounty: NativeOrder resolver reward uses total clone balance', functio
         await factory.waitForDeployment();
 
         const expiration = (await time.latest()) + 60;
+        const cancellationDelay = 60;
         const order = buildOrder({
             maker: maker.address,
             receiver: maker.address,
@@ -62,7 +63,7 @@ describe('Bounty: NativeOrder resolver reward uses total clone balance', functio
         await weth.connect(donor).deposit({ value: 1 });
         await weth.connect(donor).transfer(cloneAddress, 1);
 
-        await time.increaseTo(expiration);
+        await time.increaseTo(expiration + cancellationDelay);
         await network.provider.send('hardhat_setNextBlockBaseFeePerGas', ['0x2540be400']); // 10 gwei
 
         const rewardCap = 70000n * 11_000_000_000n / 10n;
